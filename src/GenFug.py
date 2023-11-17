@@ -1,3 +1,4 @@
+import sys
 def read_file(file_name):
     with open(file_name, 'r') as file:
         data = file.readlines()
@@ -20,6 +21,8 @@ def data_fuse(f1,f2):
     return [data, t1, Pr]
 
 def hunt(tr,pr):
+    """ Finds closest listed values of reduced values for interpolation
+    """
     # Both tables use the same axes
     ti = 0
     tl = len(t0)
@@ -72,41 +75,57 @@ def dub_int(tr,pr,arr):
     term2 = (x-x1)*(y2-y)/((x2-x1)*(y2-y1))*x2y1
     term3 = (x2-x)*(y-y1)/((x2-x1)*(y2-y1))*x1y2
     term4 = (x-x1)*(y-y1)/((x2-x1)*(y2-y1))*x2y2
-    return term1+term2+term3+term4
+    val = term1+term2+term3+term4
+    #print(val)
+    return val
+
+def call(omega,tr,pr):
+    """ GenFug.py main function, returns phi from generalized reduced values
+    
+    Parameters
+    ----------
+    omega,tr,pr : int[]
+        1D arrays of omega, t, and pr
+    """
+    phi0 = [dub_int(tr[x],pr[x],c0) for x in range(len(tr))]
+    phi1 = [dub_int(tr[x],pr[x],c1) for x in range(len(tr))]
+    logphi = [phi0[x]+omega[x]*phi1[x] for x in range(len(tr))]
+    phi = [10**x for x in logphi]
+    return phi
+
+def save_data(write):
+    if write:
+        with open ('data/tr.txt','w') as file:
+            file.write(' '.join(map(str, t0)))
+
+        with open ('data/pr.txt','w') as file:
+            file.write(' '.join(map(str, p0)))
+
+        with open ('data/c0.txt','w') as file:
+            for row in c0:
+                line = ' '.join(map(str,row))
+                file.write(line+'\n')
+
+        with open ('data/c1.txt','w') as file:
+            for row in c1:
+                line = ' '.join(map(str,row))
+                file.write(line+'\n')
 
 global c0, c1, t0, p0
 [c0,t0,p0]= data_fuse('data/C.7.0.txt','data/C.7.1.txt')
 [c1,_,_]= data_fuse('data/C.8.0.txt','data/C.8.1.txt')
+save_data(False)
 
-t_actual = 500+273
-p_actual = 150
+t_actual = 700+273
+p_actual = 50
 
-omega = [0.008,0.099,0.25,0.309,0.213,0.049]
-tc = [190.6, 305.4, 405.6, 508.1, 553.4, 132.9]
-pc = [46, 48.74, 112.77, 47.01, 40.73, 34.96]
+omega = [0.225, 0.344]
+tc = [304.2, 647.3]
+pc = [73.76, 220.48]
 
 tr = [t_actual/x for x in tc]
 pr = [p_actual/x for x in pc]
-
-with open ('data/tr.txt','w') as file:
-    file.write(' '.join(map(str, t0)))
-
-with open ('data/pr.txt','w') as file:
-    file.write(' '.join(map(str, p0)))
-
-with open ('data/c0.txt','w') as file:
-    for row in c0:
-        line = ' '.join(map(str,row))
-        file.write(line+'\n')
-
-with open ('data/c1.txt','w') as file:
-    for row in c1:
-        line = ' '.join(map(str,row))
-        file.write(line+'\n')
-
-phi0 = [dub_int(tr[x],pr[x],c0) for x in range(len(tr))]
-phi1 = [dub_int(tr[x],pr[x],c1) for x in range(len(tr))]
-logphi = [phi0[x]+omega[x]*phi1[x] for x in range(len(tr))]
-phi = [10**x for x in logphi]
-f = [p_actual*x for x in phi]
-
+phi = call(omega,tr,pr)
+print(phi)
+f = (x*50 for x in phi)
+print(f)
